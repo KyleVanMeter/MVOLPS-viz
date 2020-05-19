@@ -39,7 +39,6 @@ class BNBTree:
                     if (neighbor > parent_id and self.Tree.nodes[neighbor]["direction"] == "R"):
                         raise RuntimeError("Sibling node has matching branch direction").with_traceback(sys.exec_info())
                 self.Tree.add_node(id)
-                self.Tree.add_node(parent_id)
                 self.Tree.add_edge(id, parent_id)
                 self.Tree.nodes[id]["direction"] = "R"
             if branch_direction == "L":
@@ -49,9 +48,10 @@ class BNBTree:
                     if (neighbor > parent_id and self.Tree.nodes[neighbor]["direction"] == "L"):
                         raise RuntimeError("Sibling node has matching branch direction").with_traceback(sys.exec_info())
                 self.Tree.add_node(id)
-                self.Tree.add_node(parent_id)
                 self.Tree.add_edge(id, parent_id)
                 self.Tree.nodes[id]["direction"] = "L"
+        else:
+            print("Some kind of fall through?")
 
     def ProcessLine(self, line):
         line = line.strip()
@@ -123,7 +123,7 @@ class BNBTree:
                 lp_bound = self.Tree.nodes[node_id]["lp_bound"]
             else:
                 lp_bound = self.Tree.nodes[parent_id]["lp_bound"]
-        self.AddOrUpdateNode(self, node_id, parent_id, branch_direction, "fathomed", lp_bound, self.Tree.nodes[parent_id]["integer_infeasibility_count"], self.Tree.nodes[parent_id]["integer_infeasibility_sum"])
+        self.AddOrUpdateNode(node_id, parent_id, branch_direction, "fathomed", lp_bound, self.Tree.nodes[parent_id]["integer_infeasibility_count"], self.Tree.nodes[parent_id]["integer_infeasibility_sum"])
 
     def ProcessPregnantLine(self, node_id, parent_id, branch_direction,
                             remaining_tokens):
@@ -226,5 +226,6 @@ while(True):
         break
     bt.ProcessLine(msg)
 
-print(bt.Tree.nodes())
+for n in bt.Tree.nodes.data():
+    print(n)
 print("end")
