@@ -59,8 +59,7 @@ class BNBTree:
             return
         tokens = line.split()
         if len(tokens) < 3:
-            print('Incomplete or invalid line: %s' %' '.join(tokens))
-            sys.exit(1)
+            raise SyntaxError('Incomplete or invalid line: %s' %' '.join(tokens)).with_traceback(sys.exec_info())
         # Tokens shared by all line types
         self._time = float(tokens[0])
         line_type = tokens[1]
@@ -90,19 +89,14 @@ class BNBTree:
             self.ProcessInfeasibleLine(node_id, parent_id,
                                        branch_direction, remaining_tokens)
         else:
-            print('Unexpected line type "%s": %s' % (line_type,
-                                                     ' '.join(tokens)))
-            sys.exit(1)
-
+            raise TypeError('Unexpected line type "%s": %s' % (line_type,
+                                                     ' '.join(tokens))).with_traceback(sys.exec_info())
     def ProcessIntegerLine(self, node_id, parent_id, branch_direction,
                            remaining_tokens):
         if len(remaining_tokens) != 1:
-            print('Invalid line: %s integer %s %s %s %s' % (
+            raise RuntimeError('Invalid line: %s integer %s %s %s %s\nShould match: <time> integer <node id> <parent id>' % (
                     self._time, node_id, parent_id, branch_direction,
-                    ' '.join(remaining_tokens)))
-            print('Should match: <time> integer <node id> <parent id>'+\
-                '<branch direction> <obj value>')
-            sys.exit(1)
+                    ' '.join(remaining_tokens))).with_traceback(sys.exec_info())
         objective_value = float(remaining_tokens[0])
         self.AddOrUpdateNode(node_id, parent_id, branch_direction, 'integer',
                              objective_value, None, None)
@@ -115,16 +109,12 @@ class BNBTree:
                             remaining_tokens):
         # Print a warning if there is no current incumbent.
         if self._incumbent_value is None:
-            print('WARNING: Encountered "fathom" line before first incumbent.')
-            print('  This may indicate an error in the input file.')
+            raise SyntaxWarning('WARNING: Encountered "fathom" line before first incumbent.\nThis may indicate an error in the input file.').with_traceback(sys.exec_info())
         # Parse remaining tokens
         if len(remaining_tokens) > 1:
-            print('Invalid line: %s fathomed %s %s %s %s' % (
+            raise RuntimeError('Invalid line: %s fathomed %s %s %s %s\nShould match: <time> fathomed <node id> <parent id>' % (
                     self._time, node_id, parent_id, branch_direction,
-                    ' '.join(remaining_tokens)))
-            print('Should match: <time> fathomed <node id> <parent id>'+\
-                '<branch direction> [<lp bound>]')
-            sys.exit(1)
+                    ' '.join(remaining_tokens))).with_traceback(sys.exec_info())
         if len(remaining_tokens) == 1:
             lp_bound = float(remaining_tokens[0])
         else:
@@ -139,14 +129,9 @@ class BNBTree:
                             remaining_tokens):
         # Parse remaining tokens
         if len(remaining_tokens) != 3:
-            print('Invalid line: %s pregnant %s %s %s %s' % (
+            raise RuntimeError('Invalid line: %s pregnant %s %s %s %s\nShould match: <time> pregnant <node id> <parent id> \n<branch direction> <lp bound> \n<sum of integer infeasibilities> <number of integer \ninfeasibilities>' % (
                     self._time, node_id, parent_id, branch_direction,
-                    ' '.join(remaining_tokens)))
-            print('Should match: <time> pregnant <node id> <parent id> ')
-            print('<branch direction> <lp bound> ')
-            print('<sum of integer infeasibilities> <number of integer ')
-            print('infeasibilities>')
-            sys.exit(1)
+                    ' '.join(remaining_tokens))).with_traceback(sys.exec_info())
         lp_bound = float(remaining_tokens[0])
         integer_infeasibility_sum = float(remaining_tokens[1])
         integer_infeasibility_count = int(remaining_tokens[2])
@@ -159,14 +144,9 @@ class BNBTree:
                             remaining_tokens):
         # Parse remaining tokens
         if len(remaining_tokens) not in [3, 5]:
-            print('Invalid line: %s branched %s %s %s %s' % (
+            raise RuntimeError('Invalid line: %s branched %s %s %s %s\nShould match: <time> branched <node id> <parent id> \n<branch direction> <lp bound> \n<sum of integer infeasibilities> <number of integer \ninfeasibilities>' % (
                     self._time, node_id, parent_id, branch_direction,
-                    ' '.join(remaining_tokens)))
-            print('Should match: <time> branched <node id> <parent id> ')
-            print('<branch direction> <lp bound> ')
-            print('<sum of integer infeasibilities> <number of integer ')
-            print('infeasibilities>')
-            sys.exit(1)
+                    ' '.join(remaining_tokens))).with_traceback(sys.exec_info())
         lp_bound = float(remaining_tokens[0])
         integer_infeasibility_sum = float(remaining_tokens[1])
         integer_infeasibility_count = int(remaining_tokens[2])
@@ -183,12 +163,9 @@ class BNBTree:
                               remaining_tokens):
         # Parse remaining tokens
         if len(remaining_tokens) not in [0, 2]:
-            print('Invalid line: %s infeasible %s %s %s %s' % (
+            raise RuntimeError('Invalid line: %s infeasible %s %s %s %s\nShould match: <time> infeasible <node id> <parent id> \n<branch direction>' % (
                     self._time, node_id, parent_id, branch_direction,
-                    ' '.join(remaining_tokens)))
-            print('Should match: <time> infeasible <node id> <parent id> ')
-            print('<branch direction>')
-            sys.exit(1)
+                    ' '.join(remaining_tokens))).with_traceback(sys.exec_info())
         # Use parent values if the node does not have its own
         lp_bound = self.Tree.nodes[parent_id]["lp_bound"]
         ii_count = self.Tree.nodes[parent_id]["integer_infeasibility_count"]
@@ -211,14 +188,9 @@ class BNBTree:
                              remaining_tokens):
         # Parse remaining tokens
         if len(remaining_tokens) == 2 or len(remaining_tokens) > 3:
-            print('Invalid line: %s branched %s %s %s %s' % (
+            raise RuntimeError('Invalid line: %s branched %s %s %s %s\nShould match: <time> candidate <node id> <parent id> \n<branch direction> [<lp bound>] \n[<sum of integer infeasibilities> <number of integer \ninfeasibilities>]' % (
                     self._time, node_id, parent_id, branch_direction,
-                    ' '.join(remaining_tokens)))
-            print('Should match: <time> candidate <node id> <parent id> ')
-            print('<branch direction> [<lp bound>] ')
-            print('[<sum of integer infeasibilities> <number of integer ')
-            print('infeasibilities>]')
-            sys.exit(1)
+                    ' '.join(remaining_tokens))).with_traceback(sys.exec_info())
         if len(remaining_tokens) > 0:
             lp_bound = float(remaining_tokens[0])
         else:
