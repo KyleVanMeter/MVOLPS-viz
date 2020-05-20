@@ -264,7 +264,7 @@ for n in bt.Tree.nodes():
         color_map.append("yellow")
 
 dot_pos = nxd.graphviz_layout(bt.Tree, prog='dot')
-nx.draw(bt.Tree, node_color=color_map, pos=dot_pos)
+nx.draw(bt.Tree, node_color=color_map, with_labels=bt.Tree.nodes(), pos=dot_pos)
 #pydot_graph = nxd.to_pydot(bt.Tree)
 #png_str = pydot_graph.create_png(prog='dot')
 #pydot_graph.write('test.dot')
