@@ -1,15 +1,23 @@
 import zmq
 import networkx as nx
+import networkx.drawing.nx_pydot as nxd
+import pydot
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import matplotlib.patches as mpatch
+from io import StringIO, BytesIO
 
 class BNBTree:
     Tree = nx.Graph()
     root = None
+    color_map = []
     _incumbent_value = None
     _incumbent_parent = None
 
     def __init__(self):
         self.Tree = nx.Graph()
         self.root = None
+        self.color_map = []
         self._incumbent_value = None
         self._incumbent_parent = None
 
@@ -32,24 +40,27 @@ class BNBTree:
             self.Tree.nodes[id]["direction"] = branch_direction
 
         elif parent_id is not None:
+            for neighbor in self.Tree[parent_id]:
+                if (neighbor > parent_id and self.Tree.nodes[neighbor]["direction"] == branch_direction):
+                    raise RuntimeError("Sibling node has matching branch direction").with_traceback(sys.exec_info())
+            if (len([n for n in self.Tree[parent_id]]) > 3):
+                raise RuntimeError("Tree is not binary").with_traceback(sys.exec_info())
             if branch_direction == "R":
-                if (len([n for n in self.Tree[parent_id]]) > 3):
-                    raise RuntimeError("Tree is not binary").with_traceback(sys.exec_info())
-                for neighbor in self.Tree[parent_id]:
-                    if (neighbor > parent_id and self.Tree.nodes[neighbor]["direction"] == "R"):
-                        raise RuntimeError("Sibling node has matching branch direction").with_traceback(sys.exec_info())
                 self.Tree.add_node(id)
                 self.Tree.add_edge(id, parent_id)
                 self.Tree.nodes[id]["direction"] = "R"
+                self.Tree.nodes[id]["status"] = status
+                self.Tree.nodes[id]["lp_bound"] = lp_bound
+                self.Tree.nodes[id]["integer_infeasibility_count"] = integer_infeasibility_count
+                self.Tree.nodes[id]["integer_infeasibility_sum"] = integer_infeasibility_sum
             if branch_direction == "L":
-                if (len([n for n in self.Tree[parent_id]]) > 3):
-                    raise RuntimeError("Tree is not binary").with_traceback(sys.exec_info())
-                for neighbor in self.Tree[parent_id]:
-                    if (neighbor > parent_id and self.Tree.nodes[neighbor]["direction"] == "L"):
-                        raise RuntimeError("Sibling node has matching branch direction").with_traceback(sys.exec_info())
                 self.Tree.add_node(id)
                 self.Tree.add_edge(id, parent_id)
                 self.Tree.nodes[id]["direction"] = "L"
+                self.Tree.nodes[id]["status"] = status
+                self.Tree.nodes[id]["lp_bound"] = lp_bound
+                self.Tree.nodes[id]["integer_infeasibility_count"] = integer_infeasibility_count
+                self.Tree.nodes[id]["integer_infeasibility_sum"] = integer_infeasibility_sum
         else:
             print("Some kind of fall through?")
 
@@ -194,7 +205,7 @@ class BNBTree:
         if len(remaining_tokens) > 0:
             lp_bound = float(remaining_tokens[0])
         else:
-            lp_bound = self.get_node_attr(parent_id, 'lp_bound')
+            lp_bound = self.Tree.nodes[parent_id]["lp_bound"]
         if len(remaining_tokens) == 3:
             integer_infeasibility_sum = float(remaining_tokens[1])
             integer_infeasibility_count = int(remaining_tokens[2])
@@ -225,7 +236,56 @@ while(True):
     if(msg == 'END'):
         break
     bt.ProcessLine(msg)
+    #pydot_graph = nxd.to_pydot(bt.Tree)
+    #png_str = pydot_graph.create_png(prog='dot')
+    #sio = BytesIO(png_str)
+    #img = mpimg.imread(sio)
+    #imgplt = plt.imshow(img)
 
 for n in bt.Tree.nodes.data():
     print(n)
+color_map = []
+for n in bt.Tree.nodes():
+    if(n == 0):
+        color_map.append("black")
+        continue
+
+    if bt.Tree.nodes[n]["status"] == "branched":
+        color_map.append("yellow")
+    if bt.Tree.nodes[n]["status"] == "integer":
+        color_map.append("blue")
+    if bt.Tree.nodes[n]["status"] == "fathomed":
+        color_map.append("red")
+    if bt.Tree.nodes[n]["status"] == "infeasible":
+        color_map.append("orange")
+    if bt.Tree.nodes[n]["status"] == "pregnant":
+        color_map.append("white")
+    if bt.Tree.nodes[n]["status"] == "candidate":
+        color_map.append("yellow")
+
+dot_pos = nxd.graphviz_layout(bt.Tree, prog='dot')
+nx.draw(bt.Tree, node_color=color_map, pos=dot_pos)
+#pydot_graph = nxd.to_pydot(bt.Tree)
+#png_str = pydot_graph.create_png(prog='dot')
+#pydot_graph.write('test.dot')
+#sio = BytesIO(png_str)
+#img = mpimg.imread(sio)
+#imgplt = plt.imshow(img)
+patches = [
+    mpatch.Patch(color='yellow', label="branched"),
+    mpatch.Patch(color='orange', label="infeasible"),
+    mpatch.Patch(color='white', label="pregnant"),
+    mpatch.Patch(color='yellow', label="candidate"),
+    mpatch.Patch(color='blue', label="integer"),
+    mpatch.Patch(color='red', label="fathomed")
+]
+#branched_patch = mpatch.Patch(color='yellow', label="branched")
+#infeasible_patch = mpatch.Patch(color='orange', label="infeasible")
+#pregnant_patch = mpatch.Patch(color='white', label="pregnant")
+#candidate_patch = mpatch.Patch(color='yellow', label="candidate")
+#integer_patch = mpatch.Patch(color='blue', label="integer")
+#fathomed_patch = mpatch.Patch(color='red', label="fathomed")
+plt.legend(handles=patches, loc='upper left')
+plt.show()
+
 print("end")
