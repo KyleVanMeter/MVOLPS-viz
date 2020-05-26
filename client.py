@@ -23,7 +23,7 @@ class BNBTree:
 
     def AddOrUpdateNode(self, id, parent_id, branch_direction, status, lp_bound,
                     integer_infeasibility_count, integer_infeasibility_sum,
-                    condition_begin = None, condition_end = None,
+                    condition_begin = None, condition_end = None, color_in = 'white',
                     **attrs):
         if id in self.Tree.nodes():
             # Existing node, update attributes
@@ -34,8 +34,8 @@ class BNBTree:
         elif self.root is None:
             self.root = 0
             print('Adding root', id)
-            self.Tree.add_node(0)
-            self.Tree.add_node(id)
+            self.Tree.add_node(0, color='black')
+            self.Tree.add_node(id, color=color_in)
             self.Tree.add_edge(0,id)
             self.Tree.nodes[id]["direction"] = branch_direction
 
@@ -46,7 +46,7 @@ class BNBTree:
             if (len([n for n in self.Tree[parent_id]]) > 3):
                 raise RuntimeError("Tree is not binary").with_traceback(sys.exec_info())
             if branch_direction == "R":
-                self.Tree.add_node(id)
+                self.Tree.add_node(id, color=color_in)
                 self.Tree.add_edge(id, parent_id)
                 self.Tree.nodes[id]["direction"] = "R"
                 self.Tree.nodes[id]["status"] = status
@@ -54,7 +54,7 @@ class BNBTree:
                 self.Tree.nodes[id]["integer_infeasibility_count"] = integer_infeasibility_count
                 self.Tree.nodes[id]["integer_infeasibility_sum"] = integer_infeasibility_sum
             if branch_direction == "L":
-                self.Tree.add_node(id)
+                self.Tree.add_node(id, color=color_in)
                 self.Tree.add_edge(id, parent_id)
                 self.Tree.nodes[id]["direction"] = "L"
                 self.Tree.nodes[id]["status"] = status
@@ -110,7 +110,7 @@ class BNBTree:
                     ' '.join(remaining_tokens))).with_traceback(sys.exec_info())
         objective_value = float(remaining_tokens[0])
         self.AddOrUpdateNode(node_id, parent_id, branch_direction, 'integer',
-                             objective_value, None, None)
+                             objective_value, None, None, 'blue')
         self._previous_incumbent_value = self._incumbent_value
         self._incumbent_value = objective_value
         self._incumbent_parent = parent_id
@@ -134,7 +134,7 @@ class BNBTree:
                 lp_bound = self.Tree.nodes[node_id]["lp_bound"]
             else:
                 lp_bound = self.Tree.nodes[parent_id]["lp_bound"]
-        self.AddOrUpdateNode(node_id, parent_id, branch_direction, "fathomed", lp_bound, self.Tree.nodes[parent_id]["integer_infeasibility_count"], self.Tree.nodes[parent_id]["integer_infeasibility_sum"])
+        self.AddOrUpdateNode(node_id, parent_id, branch_direction, "fathomed", lp_bound, self.Tree.nodes[parent_id]["integer_infeasibility_count"], self.Tree.nodes[parent_id]["integer_infeasibility_sum"], 'red')
 
     def ProcessPregnantLine(self, node_id, parent_id, branch_direction,
                             remaining_tokens):
@@ -149,7 +149,7 @@ class BNBTree:
 
         self.AddOrUpdateNode(node_id, parent_id, branch_direction, 'pregnant',
                              lp_bound, integer_infeasibility_count,
-                             integer_infeasibility_sum)
+                             integer_infeasibility_sum, 'grey')
 
     def ProcessBranchedLine(self, node_id, parent_id, branch_direction,
                             remaining_tokens):
@@ -168,7 +168,7 @@ class BNBTree:
         self.AddOrUpdateNode(node_id, parent_id, branch_direction, 'branched',
                              lp_bound, integer_infeasibility_count,
                              integer_infeasibility_sum, condition_begin,
-                             condition_end)
+                             condition_end, 'yellow')
 
     def ProcessInfeasibleLine(self, node_id, parent_id, branch_direction,
                               remaining_tokens):
@@ -193,7 +193,7 @@ class BNBTree:
             condition_begin = int(remaining_tokens[0])
             condition_end = int(remaining_tokens[1])
         self.AddOrUpdateNode(node_id, parent_id, branch_direction, 'infeasible',
-                             lp_bound, ii_count, ii_sum)
+                             lp_bound, ii_count, ii_sum, 'orange')
 
     def ProcessCandidateLine(self, node_id, parent_id, branch_direction,
                              remaining_tokens):
@@ -216,7 +216,7 @@ class BNBTree:
                                                 "integer_infeasibility_count"]
         self.AddOrUpdateNode(node_id, parent_id, branch_direction, 'candidate',
                              lp_bound, integer_infeasibility_count,
-                             integer_infeasibility_sum)
+                             integer_infeasibility_sum, 'yellow')
     #def display(self, item = 'all', basename = 'graph', format='png', count=None,
     #            pause=False, wait_for_click=True):
 
@@ -228,6 +228,8 @@ socket.connect("tcp://localhost:" + str(port))
 bt = BNBTree()
 
 print("Connecting...")
+plt.style.use(['dark_background', 'fast'])
+plt.ion()
 while(True):
     socket.send_string("hello")
 
@@ -236,6 +238,12 @@ while(True):
     if(msg == 'END'):
         break
     bt.ProcessLine(msg)
+
+    dot_pos = nxd.graphviz_layout(bt.Tree, prog='dot')
+    plt.pause(0.05)
+    plt.clf()
+    plt.cla()
+    nx.draw(bt.Tree, with_labels=bt.Tree.nodes(), pos=dot_pos)
     #pydot_graph = nxd.to_pydot(bt.Tree)
     #png_str = pydot_graph.create_png(prog='dot')
     #sio = BytesIO(png_str)
@@ -263,8 +271,9 @@ for n in bt.Tree.nodes():
     if bt.Tree.nodes[n]["status"] == "candidate":
         color_map.append("yellow")
 
-dot_pos = nxd.graphviz_layout(bt.Tree, prog='dot')
-nx.draw(bt.Tree, node_color=color_map, with_labels=bt.Tree.nodes(), pos=dot_pos)
+#dot_pos = nxd.graphviz_layout(bt.Tree, prog='dot')
+#nx.draw(bt.Tree, node_color=color_map, with_labels=bt.Tree.nodes(), pos=dot_pos)
+
 #pydot_graph = nxd.to_pydot(bt.Tree)
 #png_str = pydot_graph.create_png(prog='dot')
 #pydot_graph.write('test.dot')
@@ -279,12 +288,6 @@ patches = [
     mpatch.Patch(color='blue', label="integer"),
     mpatch.Patch(color='red', label="fathomed")
 ]
-#branched_patch = mpatch.Patch(color='yellow', label="branched")
-#infeasible_patch = mpatch.Patch(color='orange', label="infeasible")
-#pregnant_patch = mpatch.Patch(color='white', label="pregnant")
-#candidate_patch = mpatch.Patch(color='yellow', label="candidate")
-#integer_patch = mpatch.Patch(color='blue', label="integer")
-#fathomed_patch = mpatch.Patch(color='red', label="fathomed")
 plt.legend(handles=patches, loc='upper left')
 plt.show()
 
